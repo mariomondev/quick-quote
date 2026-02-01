@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -12,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function ModeToggle() {
+function ThemeToggleComponent() {
   const { setTheme } = useTheme();
 
   return (
@@ -38,3 +37,6 @@ export function ModeToggle() {
     </DropdownMenu>
   );
 }
+
+// Export both names for compatibility
+export { ThemeToggleComponent as ThemeToggle, ThemeToggleComponent as ModeToggle };
