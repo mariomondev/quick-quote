@@ -2,6 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
 
+const PROTECTED_ROUTES = ["/dashboard", "/quotes"];
+const AUTH_ROUTES = ["/sign-in", "/sign-up", "/forgot-password"];
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -36,9 +39,31 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  // IMPORTANT: If you remove getClaims() and you use server-side rendering
-  // with the Supabase client, your users may be randomly logged out.
-  await supabase.auth.getClaims();
+  // IMPORTANT: Always use getClaims() to protect pages and user data in middleware.
+  // It validates the JWT signature locally using the project's public keys.
+  // Never trust getSession() in server code - it doesn't revalidate the Auth token.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
+
+  const pathname = request.nextUrl.pathname;
+
+  // Check if requesting a protected route without auth
+  const isProtectedRoute = PROTECTED_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
+  if (isProtectedRoute && !user) {
+    const signInUrl = new URL("/sign-in", request.url);
+    signInUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(signInUrl);
+  }
+
+  // Check if requesting auth route while already logged in
+  const isAuthRoute = AUTH_ROUTES.some((route) => pathname === route);
+
+  if (isAuthRoute && user) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:
