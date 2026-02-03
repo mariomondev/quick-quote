@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { quoteFormSchema, type QuoteFormValues } from "./schemas";
+import {
+  openRouter,
+  FREE_MODELS,
+  buildLineItemsPrompt,
+  parseAILineItems,
+} from "@/lib/openrouter";
 import type { LineItem } from "@/types";
 
 function calculateTotal(lineItems: LineItem[]): number {
@@ -143,4 +149,81 @@ export async function deleteQuote(id: string) {
 
   revalidatePath("/dashboard");
   redirect("/dashboard");
+}
+
+export async function suggestLineItems(
+  jobDescription: string
+): Promise<{ line_items?: LineItem[]; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  if (!jobDescription || jobDescription.trim().length === 0) {
+    return { error: "Job description is required" };
+  }
+
+  if (!openRouter) {
+    return { error: "AI service not configured" };
+  }
+
+  try {
+    // Use single user message — some free providers reject system role.
+    // OpenRouter SDK natively supports models fallback for server-side failover.
+    // Exclude ModelRun provider which doesn't support free models.
+    const completion = await openRouter.chat.send({
+      models: FREE_MODELS,
+      messages: [
+        {
+          role: "user",
+          content: buildLineItemsPrompt(jobDescription),
+        },
+      ],
+      stream: false,
+    });
+
+    const messageContent = completion.choices[0]?.message?.content;
+
+    // Extract string content from message (handle both string and array formats)
+    const rawContent =
+      typeof messageContent === "string"
+        ? messageContent
+        : Array.isArray(messageContent)
+        ? messageContent
+            .map((item) =>
+              typeof item === "string"
+                ? item
+                : item.type === "text"
+                ? item.text
+                : ""
+            )
+            .join("")
+        : null;
+
+    // Parse and validate the response using Zod
+    const aiLineItems = parseAILineItems(rawContent);
+
+    // Transform validated AI line items to LineItem format
+    const lineItems: LineItem[] = aiLineItems.map((item, index) => ({
+      id: `ai-${Date.now()}-${index}`,
+      description: item.description.trim(),
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      total: item.quantity * item.unitPrice,
+    }));
+
+    return { line_items: lineItems };
+  } catch (error) {
+    console.error("Error generating AI suggestions:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to generate suggestions",
+    };
+  }
 }

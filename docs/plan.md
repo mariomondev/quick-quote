@@ -1,27 +1,27 @@
 # QuickQuote - Project Plan
 
-A mini quote builder demonstrating Supabase, OpenAI, Stripe, and offline PWA capabilities.
+A mini quote builder demonstrating Supabase, OpenRouter, Stripe, and offline PWA capabilities.
 
 ---
 
 ## Goal
 
-Build a proof-of-concept demonstrating seamless integration between Supabase, OpenAI, and Stripe - three tools increasingly used together in modern SaaS applications.
+Build a proof-of-concept demonstrating seamless integration between Supabase, OpenRouter, and Stripe - three tools increasingly used together in modern SaaS applications.
 
 ---
 
 ## Tech Stack
 
-| Layer      | Technology              | Why                                  |
-| ---------- | ----------------------- | ------------------------------------ |
-| Framework  | Next.js (App Router)    | Industry standard, SSR + API routes  |
-| Database   | Supabase (PostgreSQL)   | Auth + DB + Realtime in one          |
-| Auth       | Supabase Auth           | Comes free with Supabase             |
-| AI         | OpenAI API              | Best docs, cheap and fast            |
-| Payments   | Stripe Checkout         | Industry standard, test mode is free |
-| Styling    | Tailwind CSS            | Fast to build with                   |
-| PWA        | Serwist (next-pwa fork) | Offline support for mobile users     |
-| Deployment | Vercel                  | Free, instant deploys                |
+| Layer      | Technology              | Why                                        |
+| ---------- | ----------------------- | ------------------------------------------ |
+| Framework  | Next.js (App Router)    | Industry standard, SSR + API routes        |
+| Database   | Supabase (PostgreSQL)   | Auth + DB + Realtime in one                |
+| Auth       | Supabase Auth           | Comes free with Supabase                   |
+| AI         | OpenRouter API          | Access to 300+ models, free tier available |
+| Payments   | Stripe Checkout         | Industry standard, test mode is free       |
+| Styling    | Tailwind CSS            | Fast to build with                         |
+| PWA        | Serwist (next-pwa fork) | Offline support for mobile users           |
+| Deployment | Vercel                  | Free, instant deploys                      |
 
 ---
 
@@ -81,14 +81,14 @@ create policy "Users can CRUD own quotes"
 
 ---
 
-### Phase 3: OpenAI Integration
+### Phase 3: OpenRouter Integration
 
-- [ ] Set up OpenAI API key in environment
-- [ ] Create API route: POST /api/ai/suggest
-- [ ] Prompt: "Given this job description, suggest 3-5 line items with prices"
-- [ ] Parse response into structured line items
-- [ ] Add "Generate with AI" button to quote form
-- [ ] Allow editing AI suggestions before saving
+- [x] Set up OpenRouter API key in environment
+- [x] Create server action for AI suggestions
+- [x] Prompt: "Given this job description, suggest 3-5 line items with prices"
+- [x] Parse response into structured line items
+- [x] Add "Generate with AI" button to quote form
+- [x] Allow editing AI suggestions before saving
 
 **Checkpoint:** Can describe "paint a 3-bedroom house" and get suggested line items.
 
@@ -143,8 +143,8 @@ create policy "Users can CRUD own quotes"
 NEXT_PUBLIC_SUPABASE_URL=your_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
-# OpenAI
-OPENAI_API_KEY=sk-...
+# OpenRouter
+OPENROUTER_API_KEY=sk-or-v1-...
 
 # Stripe
 STRIPE_SECRET_KEY=sk_test_...
@@ -185,7 +185,7 @@ quickquote/
 │   ├── supabase/
 │   │   ├── client.ts            # Browser client
 │   │   └── server.ts            # Server client
-│   ├── openai.ts
+│   ├── openrouter.ts
 │   └── stripe.ts
 ├── public/
 │   ├── manifest.json
@@ -203,7 +203,7 @@ quickquote/
 pnpx create-next-app@latest quickquote --typescript --tailwind --app --src-dir=false
 
 # Install dependencies
-pnpm install @supabase/supabase-js @supabase/ssr openai stripe serwist
+pnpm install @supabase/supabase-js @supabase/ssr @openrouter/sdk stripe serwist
 
 # Run dev server
 pnpm run dev
@@ -218,6 +218,6 @@ vercel
 
 - Supabase Docs: https://supabase.com/docs
 - Supabase + Next.js Guide: https://supabase.com/docs/guides/auth/server-side/nextjs
-- OpenAI API Reference: https://platform.openai.com/docs/api-reference
+- OpenRouter API Reference: https://openrouter.ai/docs/api-reference
 - Stripe Checkout Quickstart: https://stripe.com/docs/checkout/quickstart
 - Serwist (PWA): https://serwist.pages.dev/docs/next

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-QuickQuote is a quote builder application demonstrating Supabase (auth + database), OpenAI (AI-powered line item suggestions), Stripe (payment links), and offline PWA capabilities. Built with Next.js 16 App Router.
+QuickQuote is a quote builder application demonstrating Supabase (auth + database), OpenRouter (AI-powered line item suggestions), Stripe (payment links), and offline PWA capabilities. Built with Next.js 16 App Router.
 
 ## Commands
 
@@ -18,26 +18,30 @@ pnpm lint     # Run ESLint
 ## Architecture
 
 ### Tech Stack
+
 - **Framework**: Next.js 16 with App Router
 - **UI**: Tailwind CSS v4, shadcn/ui components (new-york style)
 - **Theme**: next-themes with dark mode support
 - **Forms**: react-hook-form with zod validation
 
 ### Path Aliases
+
 - `@/*` maps to project root (configured in tsconfig.json)
 - `@/components/ui/*` - shadcn/ui primitives
 - `@/lib/utils` - contains `cn()` helper for class merging
 - `@/hooks/*` - custom React hooks
 
 ### Planned Integrations (see docs/plan.md)
+
 - Supabase for auth and PostgreSQL database with RLS
-- OpenAI API for AI-suggested line items
+- OpenRouter API for AI-suggested line items (using free models)
 - Stripe Checkout for payment links
 - Serwist for PWA offline support
 
 ## Component Conventions
 
 UI components use shadcn/ui patterns:
+
 - Components in `components/ui/` are primitives (Button, Input, Card, etc.)
 - Use `cn()` from `@/lib/utils` for conditional class merging
 - ThemeProvider wraps app in `app/layout.tsx`

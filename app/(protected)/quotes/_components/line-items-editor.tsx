@@ -1,14 +1,28 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { suggestLineItems } from "../_lib/actions";
 import type { LineItem } from "@/types";
 
 interface LineItemsEditorProps {
   items: LineItem[];
   onChange: (items: LineItem[]) => void;
+  jobDescription?: string;
 }
 
 function generateId(): string {
@@ -24,7 +38,14 @@ function parseCurrency(value: string): number {
   return isNaN(num) ? 0 : Math.round(num * 100);
 }
 
-export function LineItemsEditor({ items, onChange }: LineItemsEditorProps) {
+export function LineItemsEditor({
+  items,
+  onChange,
+  jobDescription,
+}: LineItemsEditorProps) {
+  const [isPending, startTransition] = useTransition();
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
   const addItem = () => {
     onChange([
       ...items,
@@ -36,6 +57,40 @@ export function LineItemsEditor({ items, onChange }: LineItemsEditorProps) {
         total: 0,
       },
     ]);
+  };
+
+  const performGeneration = () => {
+    if (!jobDescription || jobDescription.trim().length === 0) {
+      toast.error("Please enter a job description first");
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await suggestLineItems(jobDescription);
+
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      if (result.line_items && result.line_items.length > 0) {
+        // Replace existing items with AI-generated ones
+        onChange(result.line_items);
+        toast.success(`Generated ${result.line_items.length} line items`);
+      } else {
+        toast.error("No line items generated");
+      }
+    });
+  };
+
+  const generateWithAI = () => {
+    // If there are existing items, show confirmation dialog
+    if (items.length > 0) {
+      setShowConfirmDialog(true);
+    } else {
+      // No existing items, proceed directly
+      performGeneration();
+    }
   };
 
   const updateItem = (id: string, updates: Partial<LineItem>) => {
@@ -60,10 +115,33 @@ export function LineItemsEditor({ items, onChange }: LineItemsEditorProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Label className="text-base font-medium">Line Items</Label>
-        <Button type="button" variant="outline" size="sm" onClick={addItem}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Item
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            onClick={generateWithAI}
+            disabled={
+              isPending || !jobDescription || jobDescription.trim().length === 0
+            }
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate with AI
+              </>
+            )}
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={addItem}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Item
+          </Button>
+        </div>
       </div>
 
       {items.length === 0 ? (
@@ -175,6 +253,30 @@ export function LineItemsEditor({ items, onChange }: LineItemsEditorProps) {
           </div>
         </div>
       )}
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace existing line items?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will replace all {items.length} existing line item
+              {items.length !== 1 ? "s" : ""} with AI-generated suggestions.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowConfirmDialog(false);
+                performGeneration();
+              }}
+            >
+              Replace Items
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

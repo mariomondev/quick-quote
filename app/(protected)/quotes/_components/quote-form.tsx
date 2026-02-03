@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -31,6 +31,11 @@ export function QuoteForm({ quote }: QuoteFormProps) {
       line_items: quote?.line_items ?? [],
       status: quote?.status ?? "draft",
     },
+  });
+
+  const jobDescription = useWatch({
+    control: form.control,
+    name: "job_description",
   });
 
   const onSubmit = (data: QuoteFormValues) => {
@@ -115,7 +120,11 @@ export function QuoteForm({ quote }: QuoteFormProps) {
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid}>
-            <LineItemsEditor items={field.value} onChange={field.onChange} />
+            <LineItemsEditor
+              items={field.value}
+              onChange={field.onChange}
+              jobDescription={jobDescription}
+            />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
         )}
