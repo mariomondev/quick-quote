@@ -151,6 +151,55 @@ export async function deleteQuote(id: string) {
   redirect("/dashboard");
 }
 
+export async function markQuoteAsSent(id: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const { data: existingQuote } = await supabase
+    .from("quotes")
+    .select("id, status, line_items, total_cents")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!existingQuote) {
+    return { error: "Quote not found" };
+  }
+
+  if (existingQuote.status === "paid") {
+    return { error: "Cannot send a paid quote" };
+  }
+
+  if (!existingQuote.line_items || existingQuote.line_items.length === 0) {
+    return { error: "Quote must have at least one line item" };
+  }
+
+  if (existingQuote.total_cents <= 0) {
+    return { error: "Quote total must be greater than zero" };
+  }
+
+  const { error } = await supabase
+    .from("quotes")
+    .update({ status: "sent" })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("Error marking quote as sent:", error);
+    return { error: "Failed to update quote status" };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/quotes/${id}`);
+  return { success: true };
+}
+
 export async function suggestLineItems(
   jobDescription: string
 ): Promise<{ line_items?: LineItem[]; error?: string }> {

@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Zap, Mail, Calendar } from "lucide-react";
 import { QuoteForm } from "../_components/quote-form";
 import { DeleteQuoteButton } from "../_components/delete-quote-button";
+import { SendToClientButton } from "../_components/send-to-client-button";
 import type { Quote } from "@/types";
 
 interface QuotePageProps {
@@ -28,6 +29,13 @@ export async function generateMetadata({
     title: `Quote ${id.slice(0, 8)} - QuickQuote`,
     description: "View and edit quote",
   };
+}
+
+function formatCents(cents: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
 }
 
 function formatDate(dateString: string): string {
@@ -123,20 +131,92 @@ export default async function QuotePage({ params }: QuotePageProps) {
               </span>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <SendToClientButton
+              quoteId={id}
+              disabled={
+                typedQuote.status === "paid" ||
+                typedQuote.line_items.length === 0 ||
+                typedQuote.total_cents <= 0
+              }
+            />
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit Quote</CardTitle>
-            <CardDescription>
-              Update the quote details below. Changes are saved when you click
-              &quot;Save Changes&quot;.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <QuoteForm quote={typedQuote} />
-          </CardContent>
-        </Card>
+        {typedQuote.status === "draft" ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Edit Quote</CardTitle>
+              <CardDescription>
+                Update the quote details below. Changes are saved when you click
+                &quot;Save Changes&quot;.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <QuoteForm quote={typedQuote} />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Quote Details</CardTitle>
+              <CardDescription>
+                This quote has been {typedQuote.status} and can no longer be
+                edited.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {typedQuote.job_description && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Job Description
+                  </p>
+                  <p className="text-sm">{typedQuote.job_description}</p>
+                </div>
+              )}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-muted-foreground">
+                      <th className="pb-3 pr-4 font-medium">Description</th>
+                      <th className="pb-3 pr-4 text-right font-medium">Qty</th>
+                      <th className="pb-3 pr-4 text-right font-medium">
+                        Unit Price
+                      </th>
+                      <th className="pb-3 text-right font-medium">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {typedQuote.line_items.map((item, i) => (
+                      <tr key={item.id ?? i} className="border-b last:border-0">
+                        <td className="py-3 pr-4">{item.description}</td>
+                        <td className="py-3 pr-4 text-right">
+                          {item.quantity}
+                        </td>
+                        <td className="py-3 pr-4 text-right">
+                          {formatCents(item.unitPrice)}
+                        </td>
+                        <td className="py-3 text-right">
+                          {formatCents(item.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={3} className="pt-4 text-right font-semibold">
+                        Total
+                      </td>
+                      <td className="pt-4 text-right text-lg font-bold">
+                        {formatCents(typedQuote.total_cents)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
