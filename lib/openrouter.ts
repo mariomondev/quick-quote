@@ -32,10 +32,13 @@ export const AILineItemSchema = z.object({
     .nonnegative("Unit price must be a non-negative integer (in cents)"),
 });
 
+// AI generation limit (matches overall max)
+export const MAX_AI_LINE_ITEMS = 10;
+
 export const AILineItemsArraySchema = z
   .array(AILineItemSchema)
   .min(1, "At least one line item is required")
-  .max(20, "Too many line items (max 20)");
+  .max(MAX_AI_LINE_ITEMS, `Too many line items (max ${MAX_AI_LINE_ITEMS})`);
 
 export type AILineItem = z.infer<typeof AILineItemSchema>;
 export type AILineItems = z.infer<typeof AILineItemsArraySchema>;

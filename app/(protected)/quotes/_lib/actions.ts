@@ -3,14 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { quoteFormSchema, type QuoteFormValues } from "./schemas";
+import {
+  quoteFormSchema,
+  MAX_LINE_ITEMS,
+  type QuoteFormValues,
+} from "./schemas";
 import {
   openRouter,
   FREE_MODELS,
   buildLineItemsPrompt,
   parseAILineItems,
 } from "@/lib/openrouter";
+import { rateLimit } from "@/lib/rate-limit";
 import type { LineItem } from "@/types";
+
+const AI_RATE_LIMIT = Number(process.env.AI_RATE_LIMIT) || 10;
 
 function calculateTotal(lineItems: LineItem[]): number {
   return lineItems.reduce((sum, item) => sum + item.total, 0);
@@ -220,6 +227,24 @@ export async function suggestLineItems(
     return { error: "AI service not configured" };
   }
 
+  // In-memory burst protection: 3 per minute per user
+  const burst = rateLimit(`ai-suggest:${user.id}`, 3, 60_000);
+  if (!burst.success) {
+    return { error: "Too many requests. Please wait a moment." };
+  }
+
+  // Persistent hourly limit via Supabase (atomic check + increment)
+  const { data: allowed, error: rlError } = await supabase.rpc(
+    "check_ai_rate_limit",
+    { p_limit: AI_RATE_LIMIT }
+  );
+
+  if (rlError || !allowed) {
+    return {
+      error: `AI generation limit reached (${AI_RATE_LIMIT}/hour). Please try again later.`,
+    };
+  }
+
   try {
     // Use single user message — some free providers reject system role.
     // OpenRouter SDK natively supports models fallback for server-side failover.
@@ -257,7 +282,9 @@ export async function suggestLineItems(
     const aiLineItems = parseAILineItems(rawContent);
 
     // Transform validated AI line items to LineItem format
-    const lineItems: LineItem[] = aiLineItems.map((item, index) => ({
+    // Ensure we don't exceed the maximum limit
+    const itemsToGenerate = aiLineItems.slice(0, MAX_LINE_ITEMS);
+    const lineItems: LineItem[] = itemsToGenerate.map((item, index) => ({
       id: `ai-${Date.now()}-${index}`,
       description: item.description.trim(),
       quantity: item.quantity,

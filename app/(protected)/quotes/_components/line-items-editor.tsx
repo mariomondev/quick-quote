@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { suggestLineItems } from "../_lib/actions";
+import { MAX_LINE_ITEMS } from "../_lib/schemas";
 import type { LineItem } from "@/types";
 
 interface LineItemsEditorProps {
@@ -47,6 +48,10 @@ export function LineItemsEditor({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const addItem = () => {
+    if (items.length >= MAX_LINE_ITEMS) {
+      toast.error(`Maximum ${MAX_LINE_ITEMS} line items allowed per quote`);
+      return;
+    }
     onChange([
       ...items,
       {
@@ -74,9 +79,16 @@ export function LineItemsEditor({
       }
 
       if (result.line_items && result.line_items.length > 0) {
+        // Ensure AI-generated items don't exceed the limit
+        const itemsToAdd = result.line_items.slice(0, MAX_LINE_ITEMS);
+        if (itemsToAdd.length < result.line_items.length) {
+          toast.warning(
+            `Generated ${result.line_items.length} items, but only ${itemsToAdd.length} were added (max ${MAX_LINE_ITEMS} allowed)`
+          );
+        }
         // Replace existing items with AI-generated ones
-        onChange(result.line_items);
-        toast.success(`Generated ${result.line_items.length} line items`);
+        onChange(itemsToAdd);
+        toast.success(`Generated ${itemsToAdd.length} line items`);
       } else {
         toast.error("No line items generated");
       }
@@ -114,7 +126,12 @@ export function LineItemsEditor({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Label className="text-base font-medium">Line Items</Label>
+        <div className="flex items-center gap-2">
+          <Label className="text-base font-medium">Line Items</Label>
+          <span className="text-xs text-muted-foreground">
+            ({items.length}/{MAX_LINE_ITEMS})
+          </span>
+        </div>
         <div className="flex gap-2">
           <Button
             type="button"
@@ -137,7 +154,18 @@ export function LineItemsEditor({
               </>
             )}
           </Button>
-          <Button type="button" variant="outline" size="sm" onClick={addItem}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addItem}
+            disabled={items.length >= MAX_LINE_ITEMS}
+            title={
+              items.length >= MAX_LINE_ITEMS
+                ? `Maximum ${MAX_LINE_ITEMS} line items allowed`
+                : "Add a new line item"
+            }
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Item
           </Button>

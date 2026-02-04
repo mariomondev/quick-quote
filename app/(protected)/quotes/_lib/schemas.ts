@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const MAX_LINE_ITEMS = 10;
+
 export const lineItemSchema = z.object({
   id: z.string(),
   description: z.string().min(1, "Description is required"),
@@ -16,7 +18,10 @@ export const quoteFormSchema = z.object({
     .optional()
     .or(z.literal("")),
   job_description: z.string().min(1, "Job description is required"),
-  line_items: z.array(lineItemSchema),
+  line_items: z
+    .array(lineItemSchema)
+    .min(1, "At least one line item is required")
+    .max(MAX_LINE_ITEMS, `Maximum ${MAX_LINE_ITEMS} line items allowed`),
   status: z.enum(["draft", "sent", "paid"]),
 });
 
