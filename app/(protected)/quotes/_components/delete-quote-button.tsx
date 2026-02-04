@@ -44,7 +44,7 @@ export function DeleteQuoteButton({ quoteId, status }: DeleteQuoteButtonProps) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-muted-foreground">
+        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
           <Trash2 className="mr-2 h-4 w-4" />
           Delete
         </Button>
@@ -62,7 +62,7 @@ export function DeleteQuoteButton({ quoteId, status }: DeleteQuoteButtonProps) {
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isPending}
-            className="bg-destructive text-white hover:bg-destructive/90"
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive"
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Delete
