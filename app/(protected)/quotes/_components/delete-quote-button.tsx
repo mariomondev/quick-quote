@@ -16,13 +16,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { deleteQuote } from "../_lib/actions";
+import type { QuoteStatus } from "@/types";
 
 interface DeleteQuoteButtonProps {
   quoteId: string;
+  status?: QuoteStatus;
 }
 
-export function DeleteQuoteButton({ quoteId }: DeleteQuoteButtonProps) {
+export function DeleteQuoteButton({ quoteId, status }: DeleteQuoteButtonProps) {
   const [isPending, startTransition] = useTransition();
+
+  // Hide button entirely if quote is paid
+  if (status === "paid") {
+    return null;
+  }
 
   const handleDelete = () => {
     startTransition(async () => {
